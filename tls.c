@@ -254,10 +254,15 @@ int clientradputtls(struct server *server, unsigned char *rad) {
     if (!server->connectionok)
 	return 0;
     len = RADLEN(rad);
+    if (len == 0) {
+        debug(DBG_ERR, "%s: refusing to write 0 octets to %s",
+              __func__, conf->name);
+        return 0;
+    }
     if ((cnt = SSL_write(server->ssl, rad, len)) <= 0) {
 	while ((error = ERR_get_error()))
 	    debug(DBG_ERR, "clientradputtls: TLS: %s", ERR_error_string(error, NULL));
-	return 0;
+	return cnt;
     }
 
     debug(DBG_DBG, "clientradputtls: Sent %d bytes, Radius packet of length %d to TLS peer %s", cnt, len, conf->name);

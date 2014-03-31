@@ -1887,6 +1887,8 @@ void *clientwr(void *arg) {
 	pthread_mutex_unlock(&server->newrq_mutex);
 
 	for (i = 0; i < MAX_REQUESTS; i++) {
+            int ret;
+
 	    if (server->clientrdgone) {
 		pthread_join(clientrdth, NULL);
 		goto errexit;
@@ -1935,8 +1937,13 @@ void *clientwr(void *arg) {
 	    if (!timeout.tv_sec || rqout->expiry.tv_sec < timeout.tv_sec)
 		timeout.tv_sec = rqout->expiry.tv_sec;
 	    rqout->tries++;
-	    conf->pdef->clientradput(server, rqout->rq->buf);
+	    ret = conf->pdef->clientradput(server, rqout->rq->buf);
 	    pthread_mutex_unlock(rqout->lock);
+            if (ret < 0) {
+                debug(DBG_ERR, "%s: unexpected SSL_write: ret=%d, error=%d "
+                      "while talking to %s", __func__, ret,
+                      SSL_get_error(server->ssl, ret), conf->name);
+            }
 	}
 	if (conf->statusserver && server->connectionok) {
 	    secs = server->lastrcv.tv_sec > laststatsrv.tv_sec ? server->lastrcv.tv_sec : laststatsrv.tv_sec;

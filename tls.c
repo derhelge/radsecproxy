@@ -331,13 +331,27 @@ void *tlsserverwr(void *arg) {
 	}
 	reply = (struct request *)list_shift(replyq->entries);
 	pthread_mutex_unlock(&replyq->mutex);
+        if (RADLEN(reply->replybuf) == 0) {
+            debug(DBG_ERR, "%s: refusing to write 0 octets to %s",
+                  __func__, addr2string(client->addr));
+            freerq(reply);
+            continue;
+        }
 	cnt = SSL_write(client->ssl, reply->replybuf, RADLEN(reply->replybuf));
 	if (cnt > 0)
 	    debug(DBG_DBG, "tlsserverwr: sent %d bytes, Radius packet of length %d to %s",
 		  cnt, RADLEN(reply->replybuf), addr2string(client->addr));
-	else
+	else {
 	    while ((error = ERR_get_error()))
 		debug(DBG_ERR, "tlsserverwr: SSL: %s", ERR_error_string(error, NULL));
+            debug(DBG_ERR, "%s: unexpected SSL_write: ret=%d, error=%d "
+                  "while talking to %s, closing connection",
+                  __func__, cnt, SSL_get_error(client->ssl, cnt),
+                  addr2string(client->addr));
+            freerq(reply);
+            ERR_remove_state(0);
+            pthread_exit(NULL);
+        }
 	freerq(reply);
     }
 }

@@ -237,6 +237,7 @@ struct client *addclient(struct clsrvconf *conf, uint8_t lock) {
 	    if (lock)
 		pthread_mutex_unlock(conf->lock);
 	    debug(DBG_ERR, "malloc failed");
+            free(new);
 	    return NULL;
 	}
     }

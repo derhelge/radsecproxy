@@ -538,7 +538,8 @@ errexit:
     if (rq->from)
 	rmclientrq(rq, rq->msg->id);
     freerq(rq);
-    pthread_mutex_unlock(&to->newrq_mutex);
+    if (to)
+        pthread_mutex_unlock(&to->newrq_mutex);
     removeclientrqs_sendrq_freeserver_lock(0);
 }
 
